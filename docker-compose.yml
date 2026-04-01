@@ -1,0 +1,66 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    entrypoint: [""]
+    command: >
+      sh -c "
+        ollama serve &
+        until curl -sf http://localhost:11434; do sleep 2; done;
+        ollama pull nomic-embed-text;
+        wait
+      "
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+
+  ai-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-dev
+    ports:
+      - "${CHAMBER_PORT:-8000}:3000"
+    volumes:
+      - workspace:/home/devuser/workspace
+      - opencode-data:/home/devuser/.local/share/opencode
+      - opencode-config:/home/devuser/.config/opencode
+      - opencode-cache:/home/devuser/.cache/opencode
+      - ohmyopencode-cache:/home/devuser/.cache/oh-my-opencode
+      - openchamber-data:/home/devuser/.config/openchamber
+      - ${HOME}/.gitconfig:/home/devuser/.gitconfig:ro
+      - ${HOME}/.ssh:/home/devuser/.ssh:ro
+      - ${HOME}/.config/gh:/home/devuser/.config/gh:ro
+    environment:
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - LANCEDB_OPENCODE_PRO_EMBEDDING_PROVIDER=${LANCEDB_OPENCODE_PRO_EMBEDDING_PROVIDER:-ollama}
+      - LANCEDB_OPENCODE_PRO_EMBEDDING_MODEL=${LANCEDB_OPENCODE_PRO_EMBEDDING_MODEL:-nomic-embed-text}
+      - LANCEDB_OPENCODE_PRO_OLLAMA_BASE_URL=${LANCEDB_OPENCODE_PRO_OLLAMA_BASE_URL:-http://ollama:11434}
+      - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-devonly}
+      - OPENCODE_PLUGINS=${OPENCODE_PLUGINS:-oh-my-opencode,lancedb-opencode-pro}
+      - UI_PASSWORD=${UI_PASSWORD:-chamber}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  workspace:
+  opencode-data:
+  opencode-config:
+  opencode-cache:
+  ohmyopencode-cache:
+  openchamber-data:
+  ollama-data:
