@@ -33,12 +33,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Update Grype database
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/scan-action:v3 sh -c 'grype db update'
+
       - name: Run Grype vulnerability scan
         uses: anchore/scan-action@v3
         with:
           image: "opencode-openchamber:test"
           fail-build: false
           severity-cutoff: high
+          Grybe-DB-update: false
 
       - name: Start services
         run: |
@@ -107,12 +111,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Update Grype database
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/scan-action:v3 sh -c 'grype db update'
+
       - name: Run Grype vulnerability scan
         uses: anchore/scan-action@v3
         with:
           image: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
           fail-build: true
           severity-cutoff: critical
+          Grybe-DB-update: false
 
       - name: Push to GHCR
         uses: docker/build-push-action@v6
