@@ -47,7 +47,7 @@ RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH=/home/devuser/.bun/bin:$PATH
 
 RUN bun install -g opencode-ai@1.2.27 && \
-    bun install -g @openchamber/web@1.9.1 && \
+    bun install -g @openchamber/web@1.9.2 && \
     bun install -g @fission-ai/openspec && \
     ln -sf /home/devuser/.bun/bin/bun /home/devuser/.bun/bin/node
 

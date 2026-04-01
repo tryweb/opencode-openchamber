@@ -101,7 +101,7 @@ OPCODE_VER=$(docker exec "$CONTAINER" opencode --version 2>/dev/null || echo "er
 assert_eq "opencode version" "1.2.27" "$OPCODE_VER"
 
 OCHAMBER_VER=$(docker exec "$CONTAINER" openchamber --version 2>/dev/null || echo "error")
-assert_eq "openchamber version" "1.9.1" "$OCHAMBER_VER"
+assert_eq "openchamber version" "1.9.2" "$OCHAMBER_VER"
 
 OSPEC_VER=$(docker exec "$CONTAINER" openspec --version 2>/dev/null || docker exec "$CONTAINER" openspec version 2>/dev/null || echo "error")
 if [ "$OSPEC_VER" != "error" ]; then

@@ -1,11 +1,11 @@
 # OpenChamber
 
-A self-hosted AI development environment powered by [OpenCode](https://opencode.ai) and [OpenChamber](https://github.com/openchamber-ai/openchamber), running on Ubuntu 24.04 with Ollama integration.
+A self-hosted AI development environment powered by [OpenCode](https://opencode.ai) and [OpenChamber](https://openchamber.dev/), running on Ubuntu 24.04 with Ollama integration.
 
 ## Features
 
 - **OpenCode AI** — Terminal-based AI coding assistant
-- **OpenChamber Web UI** — Browser-based interface for managing AI sessions
+- **OpenChamber Web UI** — Browser-based interface for managing AI sessions ([openchamber.dev](https://openchamber.dev/))
 - **Ollama Integration** — Local LLM inference with embedding support
 - **OpenSpec** — Spec-driven development tooling
 - **GitHub CLI** — Built-in `gh` for repository management
@@ -49,13 +49,22 @@ Copy `.env.example` to `.env` and customize:
 | `CHAMBER_PORT` | `8000` | Host port for Web UI |
 | `OLLAMA_PORT` | `11434` | Host port for Ollama API |
 | `OPENCODE_SERVER_PASSWORD` | `devonly` | OpenCode API password |
-| `UI_PASSWORD` | `chamber` | Web UI password |
+| `OPENCHAMBER_UI_PASSWORD` | `chamber` | Web UI password |
 | `OPENCODE_PLUGINS` | `oh-my-opencode,lancedb-opencode-pro` | Comma-separated plugin list |
+| `WORKSPACE_PATH` | *(named volume)* | Host path for workspace bind mount |
 | `OLLAMA_BASE_URL` | `http://ollama:11434` | Ollama service URL |
 
-### Persistent Data
+### Workspace
 
-All configuration and data is stored in Docker named volumes:
+By default, the workspace uses a Docker named volume. To use a host directory for direct file editing:
+
+```bash
+# Use a bind mount to a local directory
+echo "WORKSPACE_PATH=./workspace" >> .env
+docker compose up -d
+```
+
+This allows you to edit files with your local IDE while the container runs.
 
 | Volume | Container Path | Description |
 |--------|---------------|-------------|
