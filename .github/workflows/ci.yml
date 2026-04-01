@@ -33,6 +33,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Run Grype vulnerability scan
+        uses: anchore/scan-action@v3
+        with:
+          image: "opencode-openchamber:test"
+          fail-build: false
+          severity-cutoff: high
+
       - name: Start services
         run: |
           # Use dev compose file with pre-built image
@@ -91,16 +98,30 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
-      - name: Build and push
+      - name: Build and load image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Grype vulnerability scan
+        uses: anchore/scan-action@v3
+        with:
+          image: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+          fail-build: true
+          severity-cutoff: critical
+
+      - name: Push to GHCR
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   release:
     name: Create Release
