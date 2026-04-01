@@ -25,7 +25,9 @@ services:
     restart: unless-stopped
 
   ai-dev:
-    image: ghcr.io/tryweb/opencode-openchamber:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: ai-dev
     ports:
       - "${CHAMBER_PORT:-8000}:3000"

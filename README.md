@@ -17,17 +17,26 @@ A self-hosted AI development environment powered by [OpenCode](https://opencode.
 
 ```bash
 # Clone the repository
-git clone https://github.com/{your-username}/opencode-openchamber.git
+git clone https://github.com/tryweb/opencode-openchamber.git
 cd opencode-openchamber
 
 # Configure environment (optional)
 cp .env.example .env
 
-# Build and start
-docker compose build --no-cache && docker compose up -d
+# Start with pre-built image
+docker compose up -d
 ```
 
 Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+## Development
+
+Developers who want to build locally should use `docker-compose.dev.yml`:
+
+```bash
+docker compose -f docker-compose.dev.yml build --no-cache
+docker compose -f docker-compose.dev.yml up -d
+```
 
 ## Configuration
 
@@ -95,7 +104,8 @@ This builds the image from scratch, starts all services, runs 39 verification te
 ```
 ├── .env.example              # Environment template
 ├── .github/workflows/ci.yml  # CI/CD pipeline
-├── docker-compose.yml        # Service orchestration
+├── docker-compose.yml        # User-facing (uses pre-built image)
+├── docker-compose.dev.yml    # Developer (builds from Dockerfile)
 ├── Dockerfile                # Ubuntu 24.04 based image
 ├── entrypoint.sh             # Main entrypoint
 ├── entrypoint.d/             # Initialization scripts

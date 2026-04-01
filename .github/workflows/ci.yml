@@ -35,10 +35,10 @@ jobs:
 
       - name: Start services
         run: |
-          # Replace build block with pre-built image and fix container name
-          sed -i '/build:/,/dockerfile: Dockerfile/c\    image: opencode-openchamber:test' docker-compose.yml
-          sed -i 's/container_name: ai-dev/container_name: ci-test/' docker-compose.yml
-          docker compose up -d
+          # Use dev compose file with pre-built image
+          sed -i '/build:/,/dockerfile: Dockerfile/c\    image: opencode-openchamber:test' docker-compose.dev.yml
+          sed -i 's/container_name: ai-dev/container_name: ci-test/' docker-compose.dev.yml
+          docker compose -f docker-compose.dev.yml up -d
           echo "Waiting for services..."
           sleep 30
 
@@ -50,12 +50,12 @@ jobs:
       - name: Collect logs on failure
         if: failure()
         run: |
-          docker compose logs ci-test || true
-          docker compose ps || true
+          docker compose -f docker-compose.dev.yml logs ci-test || true
+          docker compose -f docker-compose.dev.yml ps || true
 
       - name: Cleanup
         if: always()
-        run: docker compose down -v --remove-orphans || true
+        run: docker compose -f docker-compose.dev.yml down -v --remove-orphans || true
 
   publish:
     name: Publish to GHCR
