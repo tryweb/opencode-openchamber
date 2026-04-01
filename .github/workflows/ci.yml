@@ -35,9 +35,9 @@ jobs:
 
       - name: Start services
         run: |
-          # Use pre-built image in compose
-          sed -i 's/ai-dev/ci-test/' docker-compose.yml
-          sed -i '/build:/,/dockerfile: Dockerfile/{s/build:/image: opencode-openchamber:test/; /dockerfile: Dockerfile/d}' docker-compose.yml
+          # Replace build block with pre-built image reference
+          sed -i '/ai-dev:/,/container_name:/{s/ai-dev:/ci-test:/}' docker-compose.yml
+          sed -i '/build:/,/dockerfile: Dockerfile/c\    image: opencode-openchamber:test' docker-compose.yml
           docker compose up -d
           echo "Waiting for services..."
           sleep 30
