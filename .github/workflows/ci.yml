@@ -1,15 +1,19 @@
 name: CI
 
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 on:
   push:
     branches: [main]
     tags: ['v*']
   pull_request:
     branches: [main]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-test:
@@ -18,7 +22,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -44,6 +48,9 @@ jobs:
     needs: build-test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      security-events: write
+      contents: read
     steps:
       - name: Download image artifact
         uses: actions/download-artifact@v4
@@ -54,15 +61,21 @@ jobs:
       - name: Load image
         run: docker load -i /tmp/image.tar
 
-      - name: Install Grype
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-
-      - name: Update Grype database
-        run: grype db update
-
       - name: Run Grype vulnerability scan
-        run: grype "opencode-openchamber:test" --fail-on high || true
+        uses: anchore/scan-action@v7
+        with:
+          image: "opencode-openchamber:test"
+          output-format: sarif
+          output-file: grype-results.sarif
+          severity-cutoff: high
+          fail-build: false
+
+      - name: Upload Grype results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: grype-results.sarif
+          category: sca-grype-test
 
   test-services:
     name: Integration Tests
@@ -71,7 +84,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download image artifact
         uses: actions/download-artifact@v4
@@ -113,7 +126,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -140,6 +153,9 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      security-events: write
+      contents: read
     steps:
       - name: Download image artifact
         uses: actions/download-artifact@v4
@@ -150,15 +166,21 @@ jobs:
       - name: Load image
         run: docker load -i /tmp/image.tar
 
-      - name: Install Grype
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-
-      - name: Update Grype database
-        run: grype db update
-
       - name: Run Grype vulnerability scan
-        run: grype "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}" --fail-on critical
+        uses: anchore/scan-action@v7
+        with:
+          image: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+          output-format: sarif
+          output-file: grype-results.sarif
+          severity-cutoff: critical
+          fail-build: true
+
+      - name: Upload Grype results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: grype-results.sarif
+          category: sca-grype-publish
 
   publish:
     name: Publish to GHCR
@@ -197,7 +219,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
