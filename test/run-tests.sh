@@ -146,16 +146,32 @@ assert_dir_exists "openchamber run dir" "/home/devuser/.config/openchamber/run"
 assert_file_exists "models.json cache" "/home/devuser/.cache/opencode/models.json"
 
 # --------------------------------------------------
-# 6. Web UI
+# 6. Web UI & Auth
 # --------------------------------------------------
 echo ""
-echo "--- Web UI ---"
+echo "--- Web UI & Auth ---"
 
 HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" "http://localhost:${CHAMBER_PORT}/" 2>/dev/null || echo "000")
 assert_eq "Web UI responds 200" "200" "$HTTP_CODE"
 
 HTML=$(curl -sf "http://localhost:${CHAMBER_PORT}/" 2>/dev/null || echo "")
 assert_contains "Web UI returns HTML" "<!doctype html>" "$HTML"
+
+# Check OPENCHAMBER_UI_PASSWORD env var is set
+UI_PASSWD_ENV=$(docker exec "$CONTAINER" sh -c 'echo $OPENCHAMBER_UI_PASSWORD' 2>/dev/null || echo "")
+if [ -n "$UI_PASSWD_ENV" ]; then
+  pass "OPENCHAMBER_UI_PASSWORD env var is set"
+else
+  fail "OPENCHAMBER_UI_PASSWORD env var is not set"
+fi
+
+# Check that openchamber logs do NOT show "unsecured" warning
+LOGS=$(docker compose logs "$CONTAINER" 2>/dev/null || true)
+if echo "$LOGS" | grep -q "browser UI is unsecured"; then
+  fail "UI password not applied (openchamber reports unsecured)"
+else
+  pass "UI password applied (no unsecured warning)"
+fi
 
 # --------------------------------------------------
 # 7. Health API

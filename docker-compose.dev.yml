@@ -48,7 +48,7 @@ services:
       - LANCEDB_OPENCODE_PRO_OLLAMA_BASE_URL=${LANCEDB_OPENCODE_PRO_OLLAMA_BASE_URL:-http://ollama:11434}
       - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-devonly}
       - OPENCODE_PLUGINS=${OPENCODE_PLUGINS:-oh-my-opencode,lancedb-opencode-pro}
-      - UI_PASSWORD=${UI_PASSWORD:-chamber}
+      - OPENCHAMBER_UI_PASSWORD=${OPENCHAMBER_UI_PASSWORD:-chamber}
     depends_on:
       ollama:
         condition: service_healthy
