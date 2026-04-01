@@ -1,5 +1,7 @@
 FROM ubuntu:24.04
 
+ARG UPGRADE_PACKAGES=false
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
@@ -26,6 +28,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tmux \
     htop \
     && rm -rf /var/lib/apt/lists/*
+
+RUN if [ "$UPGRADE_PACKAGES" = "true" ]; then \
+    apt-get update && apt-get upgrade -y --no-install-recommends && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*; \
+  fi
 
 RUN userdel -r ubuntu 2>/dev/null; \
     useradd -m -s /bin/sh -u 1000 devuser && \
