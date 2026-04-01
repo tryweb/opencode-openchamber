@@ -12,11 +12,10 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  test:
-    name: Build & Test
+  build-test:
+    name: Build Test Image
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,14 +23,36 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build image
+      - name: Build and save image
         uses: docker/build-push-action@v6
         with:
           context: .
-          load: true
+          outputs: type=docker,dest=/tmp/image.tar
           tags: opencode-openchamber:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-image
+          path: /tmp/image.tar
+          retention-days: 1
+
+  scan-test:
+    name: Scan Test Image
+    needs: build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-image
+          path: /tmp
+
+      - name: Load image
+        run: docker load -i /tmp/image.tar
 
       - name: Install Grype
         run: |
@@ -47,9 +68,26 @@ jobs:
           fail-build: false
           severity-cutoff: high
 
+  test-services:
+    name: Integration Tests
+    needs: build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-image
+          path: /tmp
+
+      - name: Load image
+        run: docker load -i /tmp/image.tar
+
       - name: Start services
         run: |
-          # Use dev compose file with pre-built image
           sed -i '/build:/,/dockerfile: Dockerfile/c\    image: opencode-openchamber:test' docker-compose.dev.yml
           sed -i 's/container_name: ai-dev/container_name: ci-test/' docker-compose.dev.yml
           docker compose -f docker-compose.dev.yml up -d
@@ -71,16 +109,12 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.dev.yml down -v --remove-orphans || true
 
-  publish:
-    name: Publish to GHCR
-    needs: test
+  build-publish:
+    name: Build Publish Image
+    needs: [scan-test, test-services]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      packages: write
-
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -88,31 +122,37 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest
-
-      - name: Build and load image
+      - name: Build and save image
         uses: docker/build-push-action@v6
         with:
           context: .
-          load: true
+          outputs: type=docker,dest=/tmp/image.tar
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish-image
+          path: /tmp/image.tar
+          retention-days: 1
+
+  scan-publish:
+    name: Scan Publish Image
+    needs: build-publish
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: publish-image
+          path: /tmp
+
+      - name: Load image
+        run: docker load -i /tmp/image.tar
 
       - name: Install Grype
         run: |
@@ -128,14 +168,33 @@ jobs:
           fail-build: true
           severity-cutoff: critical
 
-      - name: Push to GHCR
-        uses: docker/build-push-action@v6
+  publish:
+    name: Publish to GHCR
+    needs: scan-publish
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: publish-image
+          path: /tmp
+
+      - name: Load and push image
+        run: |
+          docker load -i /tmp/image.tar
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
 
   release:
     name: Create Release
