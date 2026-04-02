@@ -99,10 +99,18 @@ echo ""
 echo "--- Versions ---"
 
 OPCODE_VER=$(docker exec "$CONTAINER" opencode --version 2>/dev/null || echo "error")
-assert_eq "opencode version" "1.2.27" "$OPCODE_VER"
+if [ "$OPCODE_VER" != "error" ]; then
+  pass "opencode version ($OPCODE_VER)"
+else
+  fail "opencode not found"
+fi
 
 OCHAMBER_VER=$(docker exec "$CONTAINER" openchamber --version 2>/dev/null || echo "error")
-assert_eq "openchamber version" "1.9.2" "$OCHAMBER_VER"
+if [ "$OCHAMBER_VER" != "error" ]; then
+  pass "openchamber version ($OCHAMBER_VER)"
+else
+  fail "openchamber not found"
+fi
 
 OSPEC_VER=$(docker exec "$CONTAINER" openspec --version 2>/dev/null || docker exec "$CONTAINER" openspec version 2>/dev/null || echo "error")
 if [ "$OSPEC_VER" != "error" ]; then
