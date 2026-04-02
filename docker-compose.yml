@@ -12,8 +12,10 @@ services:
     command: >
       sh -c "
         ollama serve &
-        until curl -sf http://localhost:11434; do sleep 2; done;
-        ollama pull nomic-embed-text;
+        until ollama list > /dev/null 2>&1; do sleep 2; done;
+        if ! ollama list | grep -q nomic-embed-text; then
+          ollama pull nomic-embed-text;
+        fi;
         wait
       "
     healthcheck:
