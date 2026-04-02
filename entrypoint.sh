@@ -4,7 +4,14 @@ set -euo pipefail
 for script in /entrypoint.d/*; do
   if [[ -f $script ]]; then
     chmod +x "$script"
-    "$script"
+    case "$(basename "$script")" in
+      03-fix-docker-gid.sh)
+        sudo /bin/bash -c "$(cat "$script")"
+        ;;
+      *)
+        "$script"
+        ;;
+    esac
   fi
 done
 
