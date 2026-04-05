@@ -1,4 +1,9 @@
-# OpenChamber
+# 🚨 Project Moved
+
+This repository has been moved to **[tryweb/Codeforge](https://github.com/tryweb/Codeforge)**.  
+
+---
+[Go to Codeforge](https://github.com/tryweb/Codeforge)
 
 A self-hosted AI development environment powered by [OpenCode](https://opencode.ai) and [OpenChamber](https://openchamber.dev/), running on Ubuntu 24.04 with Ollama integration.
 
